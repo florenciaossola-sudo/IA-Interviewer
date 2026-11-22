@@ -1,189 +1,256 @@
-# AI Interviewer Monorepo
+# AI Interviewer
 
-Phase 0 starter scaffold for the AI Interviewer project.
+AI Interviewer is a platform for adaptive technical interviews. Administrators
+prepare roles and interviews, candidates answer questions, and reviewers inspect
+the evidence and make a human decision. The system assists the process; it does
+not make an automatic hiring decision.
 
-## Structure
+## Features
 
-- `apps/portal`: Admin and reviewer portal frontend
-- `apps/interview`: Candidate interview frontend
-- `services/api`: Backend API service
-- `services/agent`: Agent runtime service
-- `packages/shared-types`: Shared TypeScript contracts
-- `packages/evals`: Evaluation fixtures and suites
-- `infra`: Local infrastructure assets
+- **Admin:** manage roles, interview schedules, candidate links, reviewers and
+  source documents.
+- **Candidate:** complete a warm-up and an adaptive interview, with support for
+  resuming an interrupted session.
+- **Reviewer:** inspect answers, scores, retrieved sources, checkpoints and
+  integrity signals, and accept or override the system recommendation.
+- **Workflow:** FastAPI handles requests and LangGraph coordinates question
+  generation, retrieval, evaluation, routing and human review.
+- **Grounding:** retrieval supplies relevant document chunks to the evaluator.
+  Question generation and answer evaluation can use separately configured models.
 
-## Setup
+## Project structure
 
-1. Install Node dependencies:
-- npm install
+| Directory | Purpose |
+| --- | --- |
+| `apps/portal` | Admin and Reviewer frontends |
+| `apps/interview` | Candidate frontend |
+| `services/api` | FastAPI endpoints and persistence |
+| `services/agent` | Interview workflow, evaluation and retrieval |
+| `services/analytics` | Analytics and reporting |
+| `packages/shared-types` | Shared TypeScript contracts |
+| `packages/evals` | Evaluation resources |
+| `infra` | Optional PostgreSQL, pgvector and other local infrastructure |
+| `docs` | Presentation and technical documentation |
 
-2. Install Python tooling:
-- py -3 -m pip install --user ruff mypy pytest
-- py -3 -m pip install -e services/api -e services/agent
-- Optional for Postgres backend:
-	- py -3 -m pip install -e "services/api[postgres]" -e "services/agent[postgres]"
-- Optional for DuckDB/MinIO lakehouse exports:
-	- py -3 -m pip install -e "services/api[lakehouse]"
+## Requirements
 
-3. Optional database backend switch (default is SQLite):
-- `AI_INTERVIEWER_DB_BACKEND=postgres`
-- `AI_INTERVIEWER_POSTGRES_DSN=postgresql://postgres:postgres@localhost:5432/ai_interviewer`
+- Git.
+- Node.js 22 and npm. The version used by CI is recorded in `.nvmrc`.
+- Python 3.12 or newer; CI uses Python 3.12.
+- Optional: Ollama and a local model for LLM-powered interviews.
+- Optional: Docker and Docker Compose for PostgreSQL and pgvector.
 
-## Verification Commands
+The commands below use **Windows PowerShell** and assume you run them from the
+repository root. Other operating systems require their equivalent commands.
 
-- `npm run lint`
-- `npm run typecheck`
-- `npm run test`
-- `npm run analytics`
-- `npm run check-boundaries`
-- `npm run gen:openapi` / `npm run check:openapi`
-- `npm run ci`
+## Clone and install
 
-## API Contract (Phase 1 + Grounding)
+```powershell
+git clone https://github.com/florenciaossola-sudo/IA-Interviewer.git
+cd IA-Interviewer
 
-### POST /run/start
-
-Request body:
-
-```json
-{
-	"role": "backend_engineer",
-	"doc_type": "role_description"
-}
+npm ci
+py -3.12 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -e services\api -e services\agent
 ```
 
-Response body:
+The virtual environment is used explicitly, so activation is not required.
+`py -3.12` requires Python 3.12 to be installed and available to the Windows
+Python launcher.
 
-```json
-{
-	"run_id": "iv_ab12cd",
-	"role": "backend_engineer",
-	"doc_type": "role_description",
-	"question": "Tell me about a project where you had to debug a tough production issue.",
-	"question_index": 1,
-	"total_questions": 3,
-	"completed": false,
-	"grounded_context": [
-		{
-			"chunk_id": "backend-role::chunk-0",
-			"doc_id": "backend-role",
-			"doc_type": "role_description",
-			"role": "backend_engineer",
-			"text": "Backend engineers design reliable APIs and maintain backward compatibility.",
-			"score": 0.82
-		}
-	],
-	"citation_list": [
-		{
-			"source_id": "backend-role::chunk-0",
-			"doc_id": "backend-role",
-			"doc_type": "role_description",
-			"role": "backend_engineer"
-		}
-	]
-}
+For the optional test and quality tools:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install ruff mypy pytest
 ```
 
-Field summary:
+## Start the application
 
-| Field | Type | Required | Description |
-|---|---|---|---|
-| run_id | string | yes | Interview run identifier. |
-| role | string | yes | Retrieval role filter for this run. |
-| doc_type | string | yes | Retrieval document-type filter for this run. |
-| question | string | yes | First interviewer question from stub agent. |
-| question_index | integer | yes | 1-based index of current question. |
-| total_questions | integer | yes | Total number of planned interview questions. |
-| completed | boolean | yes | Whether the interview has finished. |
-| grounded_context | array of GroundedContextItem | yes | Retrieved chunks with full text and relevance score. |
-| citation_list | array of CitationItem | yes | Deduplicated source references for audit/reviewer tracing. |
+Open **four PowerShell terminals** in the repository root. Start the API first
+and leave all four processes running:
 
-GroundedContextItem:
+**Terminal 1 - API**
 
-| Field | Type | Description |
-|---|---|---|
-| chunk_id | string | Unique chunk identifier used as source key. |
-| doc_id | string | Document identifier where chunk came from. |
-| doc_type | string | Document type of source chunk. |
-| role | string | Role associated with source chunk. |
-| text | string | Full chunk text used for grounding. |
-| score | number | Similarity score from retrieval ranking. |
-
-CitationItem:
-
-| Field | Type | Description |
-|---|---|---|
-| source_id | string | Source identifier (maps to chunk_id). |
-| doc_id | string | Document identifier for source. |
-| doc_type | string | Document type for source. |
-| role | string | Role associated with source. |
-
-### POST /run/answer
-
-Request body:
-
-```json
-{
-	"run_id": "iv_ab12cd",
-	"answer": "I debugged an incident by tracing API latency regressions.",
-	"role": "backend_engineer",
-	"doc_type": "engineering_standard"
-}
+```powershell
+.\.venv\Scripts\python.exe -m uvicorn services.api.main:app --host 127.0.0.1 --port 8081 --reload
 ```
 
-Response body:
+**Terminal 2 - Admin**
 
-```json
-{
-	"run_id": "iv_ab12cd",
-	"role": "backend_engineer",
-	"doc_type": "engineering_standard",
-	"question": "How do you design APIs so they remain backward compatible?",
-	"question_index": 2,
-	"total_questions": 3,
-	"completed": false,
-	"grounded_context": [
-		{
-			"chunk_id": "testing-standards::chunk-0",
-			"doc_id": "testing-standards",
-			"doc_type": "engineering_standard",
-			"role": "backend_engineer",
-			"text": "CI pipelines should include deterministic tests and flaky-test detection.",
-			"score": 0.79
-		}
-	],
-	"citation_list": [
-		{
-			"source_id": "testing-standards::chunk-0",
-			"doc_id": "testing-standards",
-			"doc_type": "engineering_standard",
-			"role": "backend_engineer"
-		}
-	]
-}
+```powershell
+npm run dev --workspace @ai-interviewer/portal
 ```
 
-Field summary:
+**Terminal 3 - Candidate**
 
-| Field | Type | Required | Description |
-|---|---|---|---|
-| run_id | string | yes | Interview run identifier. |
-| role | string | yes | Effective role used for this answer retrieval pass. |
-| doc_type | string | yes | Effective document-type filter used for retrieval. |
-| question | string or null | yes | Next question, or null on completion. |
-| question_index | integer | yes | 1-based index of the next/current question position. |
-| total_questions | integer | yes | Total number of planned interview questions. |
-| completed | boolean | yes | True when interview is complete. |
-| grounded_context | array of GroundedContextItem | yes | Retrieved chunks for the submitted answer context. |
-| citation_list | array of CitationItem | yes | Deduplicated source references for audit/reviewer tracing. |
+```powershell
+npm run dev --workspace @ai-interviewer/interview
+```
 
-Notes:
-- `citation_list` is a compact, deduplicated source reference list for reviewer/audit usage.
-- `grounded_context` contains full chunk text for runtime display.
-- On final answer, `question` becomes `null` and `completed` becomes `true`.
+**Terminal 4 - Reviewer**
 
-## Notes
+```powershell
+npm run dev:reviewer --workspace @ai-interviewer/portal
+```
 
-- Scripts are wired with real tooling for Phase 0.
-- Keep live-model checks out of blocking CI jobs.
-- Phase 7 analytics snapshots are generated from SQLite via `npm run analytics`.
+| Service | Local address |
+| --- | --- |
+| Admin | http://127.0.0.1:4173 |
+| Candidate | http://127.0.0.1:4174 |
+| Reviewer | http://127.0.0.1:4175 |
+| FastAPI interactive documentation | http://127.0.0.1:8081/docs |
+
+Stop each process with `Ctrl+C` in its terminal.
+
+## Try an interview
+
+1. In Admin, create a role with a meaningful description. Add PDF, DOCX or
+   Markdown documents to the corpus as needed, using the matching role and
+   document type. Confirm that ingestion succeeded.
+2. Schedule an interview for that role, set an expiration time and copy the
+   candidate link. Assign a reviewer. The interview must be active and not
+   expired; it can be activated manually or when its scheduled time arrives.
+3. Open the candidate link, accept the integrity disclosure, choose any
+   applicable accommodations and complete the warm-up and interview.
+4. Open Reviewer, select the completed run from the queue or load its run ID.
+   Examine the transcript, evaluations and sources, then submit an **approved**
+   or **overridden** recommendation with a rationale. Approved means accepting
+   the system recommendation, not automatically hiring the candidate.
+
+The default invitation backend logs delivery instead of sending email. For real
+email delivery, see [the API service guide](services/api/README.md).
+
+## Database and local data
+
+The default setup uses SQLite and does not require a separate database server.
+The application creates local data under `data/`, including operational records,
+scheduled interviews, LangGraph checkpoints and uploaded corpus documents. The
+directory, local invitation encryption keys and `.env` files are ignored by Git.
+A fresh clone does **not** contain your existing interviews, roles or uploaded
+documents. Keep backups private: these files can contain personal information.
+
+The default retrieval backend uses an in-memory index and sample documents. It is
+configured separately from the operational database.
+
+### Optional: PostgreSQL and pgvector
+
+From the repository root, install the PostgreSQL extras and start the local
+PostgreSQL container:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -e "services\api[postgres]" -e "services\agent[postgres]"
+docker compose -f infra\docker-compose.yml up -d postgres
+```
+
+In the **API terminal**, set these local-development variables before starting
+Uvicorn:
+
+```powershell
+$env:AI_INTERVIEWER_DB_BACKEND = "postgres"
+$env:AI_INTERVIEWER_POSTGRES_DSN = "postgresql://aiuser:local-dev-only@127.0.0.1:5432/ai_interviewer"
+$env:AI_INTERVIEWER_LANGGRAPH_POSTGRES_DSN = "postgresql://aiuser:local-dev-only@127.0.0.1:5432/ai_interviewer_langgraph"
+
+# Optional: use pgvector for retrieval as well.
+$env:AI_INTERVIEWER_RETRIEVAL_BACKEND = "pgvector"
+
+.\.venv\Scripts\python.exe -m uvicorn services.api.main:app --host 127.0.0.1 --port 8081 --reload
+```
+
+These credentials are the Compose defaults for local development only. Replace
+them for shared environments. LangGraph requires its own database because its
+checkpoint tables must not overlap with the operational schema. Choosing
+PostgreSQL for operational data does not automatically enable pgvector.
+See [the infrastructure guide](infra/README.md) for additional options.
+
+## Models and grounding
+
+By default, answer evaluation uses deterministic rules and question generation
+uses deterministic prompts when no provider is enabled. A Gemini key present in
+the environment can auto-enable Gemini question generation; remove it from the
+API process environment if a fully deterministic run is required. Evaluation
+still requires retrieved source evidence.
+
+To use **Ollama** for both questions and evaluation, install and start Ollama,
+download a model such as `llama3.1`, and set the variables in the API terminal
+before starting the API:
+
+```powershell
+ollama pull llama3.1
+$env:AI_INTERVIEWER_QUESTION_LLM_ENABLED = "1"
+$env:AI_INTERVIEWER_QUESTION_LLM_PROVIDER = "ollama"
+$env:AI_INTERVIEWER_LLM_ENABLED = "1"
+$env:AI_INTERVIEWER_LLM_PROVIDER = "ollama"
+$env:AI_INTERVIEWER_OLLAMA_ENDPOINT = "http://127.0.0.1:11434"
+$env:AI_INTERVIEWER_OLLAMA_MODEL = "llama3.1"
+
+.\.venv\Scripts\python.exe -m uvicorn services.api.main:app --host 127.0.0.1 --port 8081 --reload
+```
+
+Question generation and evaluation can be enabled independently. Gemini and
+Anthropic are also supported; question generation additionally supports GitHub
+Models. See [the agent guide](services/agent/README.md) and
+[question provider configuration](services/agent/graph/questions.py) for the
+relevant variables. Store API keys outside the repository. PowerShell environment
+variables apply to the current terminal and its child processes.
+
+For grounding, documents are split into chunks and indexed. The current embedder
+uses normalized token frequencies, not a neural semantic embedding model.
+Relevant chunks are retrieved by role and document type and supplied to the
+evaluator. A retrieval similarity score is not a candidate score. See
+[RAG in the project](docs/rag-en-el-proyecto.md) for a detailed explanation
+in Spanish.
+
+## API
+
+With the API running, use [Swagger UI](http://127.0.0.1:8081/docs) or
+[ReDoc](http://127.0.0.1:8081/redoc) for the current request and response
+schemas. The repository also contains [openapi.json](openapi.json).
+
+| Endpoint | Purpose |
+| --- | --- |
+| `POST /run/start` | Start or resume an interview run. |
+| `POST /run/answer` | Submit a warm-up or interview answer and continue the workflow. |
+| `GET /runs/{run_id}/audit` | Retrieve the run's audit information. |
+| `POST /runs/{run_id}/review` | Submit a human review. |
+| `/admin/roles` and `/admin/interviews` | Manage roles and scheduled interviews. |
+
+## Tests and checks
+
+The root npm scripts invoke Python through `py -3`, which may select a different
+interpreter from the virtual environment. Install the project and quality tools
+in the interpreter selected by the launcher before using those scripts. To run
+Python tests explicitly with the project environment instead:
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest services\api\tests services\agent\tests services\analytics\tests
+```
+
+Other checks:
+
+```powershell
+npm run lint
+npm run typecheck
+npm run test
+npm run test --workspace @ai-interviewer/portal
+npm run check-boundaries
+npm run check:openapi
+```
+
+`npm run gen:openapi` regenerates the checked-in schema. `npm run ci` runs the
+larger set of checks and end-to-end suites; browser tests additionally require
+Playwright's Chromium (`npx playwright install chromium`).
+
+## Privacy and limitations
+
+- Reviewer integrity signals are contextual review aids, not proof of
+  misconduct, probabilities of fraud or technical competency scores. Focus
+  telemetry is optional and declared accommodations can suppress signals.
+- The reviewer can accept or override the system recommendation; a human
+  remains responsible for interpreting evidence.
+- The decision, conclusion and confidence thresholds currently used by the
+  graph are fixed defaults rather than the corresponding per-role settings.
+- Admin endpoints are not authenticated. This local setup is not suitable for
+  exposure to untrusted networks without additional security controls. Reviewer
+  authentication can be enabled; see [the portal guide](apps/portal/README.md).
+- Do not commit credentials, candidate data, generated databases or private
+  source documents. Use non-production data for local demonstrations.
