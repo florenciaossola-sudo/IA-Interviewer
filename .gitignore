@@ -10,6 +10,7 @@ __pycache__/
 .ruff_cache/
 .venv/
 *.pyc
+*.egg-info/
 *.invitation.key
 
 # OS/editor

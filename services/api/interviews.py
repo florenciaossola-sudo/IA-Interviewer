@@ -9,11 +9,14 @@ import secrets
 import sqlite3
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from importlib import import_module
 from pathlib import Path
+from types import ModuleType
 from typing import Any, List
 
+psycopg: ModuleType | None
 try:
-    import psycopg
+    psycopg = import_module("psycopg")
 except ImportError:  # pragma: no cover - optional PostgreSQL backend
     psycopg = None
 

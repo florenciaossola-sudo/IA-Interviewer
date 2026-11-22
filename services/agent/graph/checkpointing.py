@@ -20,6 +20,7 @@ def get_checkpointed_graph(
 ) -> CompiledStateGraph:
     with _lock:
         backend = os.getenv("AI_INTERVIEWER_DB_BACKEND", "sqlite").strip().lower()
+        context: AbstractContextManager[Any]
         if backend == "postgres":
             raw_dsn = dsn or os.getenv("AI_INTERVIEWER_LANGGRAPH_POSTGRES_DSN") or ""
             resolved_dsn = raw_dsn.strip()

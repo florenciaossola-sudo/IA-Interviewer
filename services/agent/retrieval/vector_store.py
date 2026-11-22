@@ -1,15 +1,17 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from importlib import import_module
+from types import ModuleType
 from typing import Protocol
-
-try:
-    import psycopg
-except ImportError:  # pragma: no cover - optional dependency for pgvector backend
-    psycopg = None
 
 from services.agent.retrieval.types import Chunk, RetrievalQuery, RetrievalResult
 
+psycopg: ModuleType | None
+try:
+    psycopg = import_module("psycopg")
+except ImportError:  # pragma: no cover - optional dependency for pgvector backend
+    psycopg = None
 
 class VectorStore(Protocol):
     def upsert(self, chunk: Chunk, embedding: dict[str, float]) -> None:

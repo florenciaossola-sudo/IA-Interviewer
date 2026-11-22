@@ -1406,6 +1406,18 @@
             "title": "Expires At",
             "type": "string"
           },
+          "integrity_preferences": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Integrity Preferences"
+          },
           "interview_id": {
             "title": "Interview Id",
             "type": "string"
@@ -1781,7 +1793,7 @@
             "type": "string"
           },
           "max_turns": {
-            "default": 5,
+            "default": 3,
             "maximum": 10.0,
             "minimum": 3.0,
             "title": "Max Turns",
