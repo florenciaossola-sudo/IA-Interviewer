@@ -1,0 +1,101 @@
+from services.agent.graph.models import DecisionContext
+from services.agent.graph.policy import decide_route
+
+
+def test_policy_truth_table() -> None:
+    cases = [
+        (
+            DecisionContext(
+                turn_index=0,
+                max_turns=3,
+                score=0.90,
+                cumulative_score_before_turn=0.0,
+                evaluated_turns_before_turn=0,
+                off_topic_count=0,
+                mixed_signal=False,
+                remaining_competencies=2,
+            ),
+            "switch_competency",
+        ),
+        (
+            DecisionContext(
+                turn_index=2,
+                max_turns=3,
+                score=0.90,
+                cumulative_score_before_turn=1.6,
+                evaluated_turns_before_turn=2,
+                off_topic_count=0,
+                mixed_signal=False,
+                remaining_competencies=0,
+            ),
+            "conclude",
+        ),
+        (
+            DecisionContext(
+                turn_index=1,
+                max_turns=3,
+                score=0.10,
+                cumulative_score_before_turn=0.2,
+                evaluated_turns_before_turn=1,
+                off_topic_count=2,
+                mixed_signal=False,
+                remaining_competencies=2,
+            ),
+            "escalate",
+        ),
+        (
+            DecisionContext(
+                turn_index=1,
+                max_turns=3,
+                score=0.55,
+                cumulative_score_before_turn=0.65,
+                evaluated_turns_before_turn=1,
+                off_topic_count=0,
+                mixed_signal=False,
+                remaining_competencies=1,
+            ),
+            "switch_competency",
+        ),
+        (
+            DecisionContext(
+                turn_index=0,
+                max_turns=3,
+                score=0.50,
+                cumulative_score_before_turn=0.0,
+                evaluated_turns_before_turn=0,
+                off_topic_count=0,
+                mixed_signal=True,
+                remaining_competencies=1,
+            ),
+            "switch_competency",
+        ),
+        (
+            DecisionContext(
+                turn_index=2,
+                max_turns=3,
+                score=0.10,
+                cumulative_score_before_turn=0.8,
+                evaluated_turns_before_turn=2,
+                off_topic_count=2,
+                mixed_signal=False,
+                remaining_competencies=1,
+            ),
+            "escalate",
+        ),
+        (
+            DecisionContext(
+                turn_index=2,
+                max_turns=3,
+                score=0.30,
+                cumulative_score_before_turn=0.9,
+                evaluated_turns_before_turn=2,
+                off_topic_count=0,
+                mixed_signal=False,
+                remaining_competencies=1,
+            ),
+            "switch_competency",
+        ),
+    ]
+
+    for context, expected in cases:
+        assert decide_route(context) == expected

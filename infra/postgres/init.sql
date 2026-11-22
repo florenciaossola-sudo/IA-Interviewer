@@ -1,0 +1,3 @@
+CREATE EXTENSION IF NOT EXISTS vector;
+CREATE DATABASE airflow;
+CREATE DATABASE ai_interviewer_langgraph;

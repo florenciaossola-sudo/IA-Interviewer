@@ -1,0 +1,50 @@
+[
+  {
+    "name": "strong",
+    "role": "backend_engineer",
+    "doc_type": "role_description",
+    "answers": [
+      "I debug production incidents by isolating root cause and tracing regressions.",
+      "I design API versioning with deprecation plans and backward compatibility.",
+      "I keep CI deterministic by reducing flaky tests and enforcing test quality."
+    ],
+    "expected_final_route": "escalate",
+    "expected_route_sequence": ["probe_deeper", "probe_deeper", "switch_competency"]
+  },
+  {
+    "name": "weak",
+    "role": "backend_engineer",
+    "doc_type": "role_description",
+    "answers": [
+      "I saw one production issue once.",
+      "Sometimes I check api logs quickly.",
+      "I run one test if I have time."
+    ],
+    "expected_final_route": "escalate",
+    "expected_route_sequence": ["probe_deeper", "probe_deeper", "switch_competency"]
+  },
+  {
+    "name": "mixed",
+    "role": "backend_engineer",
+    "doc_type": "role_description",
+    "answers": [
+      "I debug incidents and align API changes with backward compatibility.",
+      "I use API versioning and deprecation notices to keep integrations stable.",
+      "In CI I reduce flaky tests and keep execution deterministic."
+    ],
+    "expected_final_route": "escalate",
+    "expected_route_sequence": ["switch_competency", "probe_deeper", "probe_deeper"]
+  },
+  {
+    "name": "off_topic",
+    "role": "backend_engineer",
+    "doc_type": "role_description",
+    "answers": [
+      "I like mountain biking on weekends.",
+      "My favorite food is sushi.",
+      "I also enjoy photography."
+    ],
+    "expected_final_route": "escalate",
+    "expected_route_sequence": ["probe_deeper", "escalate"]
+  }
+]

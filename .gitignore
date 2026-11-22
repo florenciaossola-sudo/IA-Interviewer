@@ -1,0 +1,31 @@
+# Node
+node_modules/
+dist/
+coverage/
+
+# Python
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+*.pyc
+*.invitation.key
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.vscode/
+
+# Logs
+*.log
+
+# Local configuration and runtime data
+.env
+.env.*
+!.env.example
+data/
+tmp/
+.langgraph_api/
+response.json
+~$*

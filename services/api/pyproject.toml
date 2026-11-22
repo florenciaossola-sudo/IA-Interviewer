@@ -1,0 +1,27 @@
+[project]
+name = "ai-interviewer-api"
+version = "0.1.0"
+description = "AI Interviewer API service"
+requires-python = ">=3.12"
+dependencies = [
+	"fastapi>=0.116.0",
+	"cryptography>=44.0.0",
+	"langgraph>=1.2.10",
+	"langgraph-checkpoint-sqlite>=3.0.0",
+	"python-docx>=1.1.2",
+	"pypdf>=5.0.0",
+	"resend>=2.49.0",
+	"uvicorn>=0.35.0",
+]
+
+[project.optional-dependencies]
+postgres = [
+	"psycopg[binary]>=3.2.0",
+]
+lakehouse = [
+	"duckdb>=1.4.0",
+	"minio>=7.2.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

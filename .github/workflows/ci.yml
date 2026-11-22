@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  quality:
+    runs-on: windows-latest
+    env:
+      AI_INTERVIEWER_QUESTION_LLM_ENABLED: "0"
+      AI_INTERVIEWER_LLM_ENABLED: "0"
+      AI_INTERVIEWER_EMAIL_BACKEND: log
+      AI_INTERVIEWER_DB_BACKEND: sqlite
+      AI_INTERVIEWER_RETRIEVAL_BACKEND: fixture
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install Node dependencies
+        run: npm ci
+      - name: Install Python dependencies
+        run: >-
+          py -3 -m pip install -e "services/api[postgres,lakehouse]"
+          -e "services/agent[postgres]" ruff mypy pytest
+      - name: Install Playwright browser
+        run: npx playwright install chromium
+      - name: Run blocking checks and end-to-end suites
+        run: npm run ci

@@ -1,0 +1,26 @@
+[
+  {
+    "doc_id": "backend-role",
+    "doc_type": "role_description",
+    "role": "backend_engineer",
+    "content": "Backend engineers design reliable APIs and maintain backward compatibility.\n\nThey define versioning policies and deprecation paths to avoid breaking clients.\n\nDebugging practices start with a production incident timeline and root-cause analysis. Engineers trace failures through logs and monitoring.\n\nAPI design should document compatibility contracts.\n\nTest reliability requires deterministic tests, reproducible regressions, and reliable CI.\n\nThey monitor production rollouts and compare service behavior after release."
+  },
+  {
+    "doc_id": "testing-standards",
+    "doc_type": "engineering_standard",
+    "role": "backend_engineer",
+    "content": "CI pipelines should include deterministic tests and flaky-test detection.\n\nUse retries only with diagnostics, and track failure rates over time."
+  },
+  {
+    "doc_id": "frontend-engineering-standard",
+    "doc_type": "engineering_standard",
+    "role": "frontend_engineer",
+    "content": "Frontend engineering standards define component boundaries, accessibility, and responsive layouts. Document compatibility contracts. Test UI regressions with deterministic checks and reliable waits."
+  },
+  {
+    "doc_id": "frontend-role",
+    "doc_type": "role_description",
+    "role": "frontend_engineer",
+    "content": "Frontend engineers focus on usability, accessibility, and responsive layouts.\n\nThey prioritize component consistency and design-system alignment."
+  }
+]

@@ -1,0 +1,47 @@
+{
+  "name": "ai-interviewer-monorepo",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "lint": "npm run lint:ts && npm run lint:py",
+    "lint:ts": "eslint . --max-warnings=0",
+    "lint:py": "py -3 -m ruff check services infra/airflow/dags",
+    "typecheck": "npm run typecheck:ts && npm run typecheck:py",
+    "typecheck:ts": "tsc -p tsconfig.json --noEmit && tsc -p apps/interview/tsconfig.json --noEmit && tsc -p apps/portal/tsconfig.json --noEmit",
+    "typecheck:py": "py -3 -m mypy services",
+    "test": "npm run test:ts && npm run test:py",
+    "test:ts": "tsx --test packages/shared-types/src/index.test.ts",
+    "test:py": "py -3 -m pytest services/api/tests services/agent/tests services/analytics/tests",
+    "test:e2e": "node apps/interview/e2e/walking-skeleton.e2e.mjs",
+    "test:e2e:portal": "node apps/portal/e2e/reviewer-smoke.e2e.mjs",
+    "phase1": "npm run test:py && npm run test:e2e",
+    "eval": "py -3 -m services.agent.evals.retrieval_eval",
+    "eval:faithfulness": "py -3 -m services.agent.evals.faithfulness_eval",
+    "eval:graph": "py -3 -m services.agent.evals.graph_replay_eval",
+    "phase3": "npm run test:py && npm run eval:graph",
+    "analytics": "py -3 -m services.analytics.report",
+    "analytics:sync": "py -3 -m services.analytics.scheduler --job snapshot-sync",
+    "analytics:drift": "py -3 -m services.analytics.scheduler --job drift-check",
+    "gen:openapi": "py -3 -m services.api.openapi --write",
+    "check:openapi": "py -3 -m services.api.openapi --check",
+    "check:openapi:live": "node scripts/check-openapi.mjs",
+    "check-boundaries": "node scripts/check-boundaries.mjs",
+    "ci": "npm run lint && npm run typecheck && npm run test && npm run eval && npm run eval:graph && npm run eval:faithfulness && npm run check-boundaries && npm run check:openapi && npm run test:e2e && npm run test:e2e:portal"
+  },
+  "devDependencies": {
+    "@rollup/rollup-win32-x64-msvc": "4.62.5",
+    "@eslint/js": "^9.34.0",
+    "@types/node": "^22.18.1",
+    "eslint": "^9.34.0",
+    "globals": "^16.3.0",
+    "playwright": "^1.55.0",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2",
+    "typescript-eslint": "^8.41.0"
+  }
+}
