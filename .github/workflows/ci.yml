@@ -8,6 +8,7 @@ on:
 jobs:
   quality:
     runs-on: windows-latest
+    timeout-minutes: 20
     env:
       AI_INTERVIEWER_QUESTION_LLM_ENABLED: "0"
       AI_INTERVIEWER_LLM_ENABLED: "0"

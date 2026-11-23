@@ -6,7 +6,8 @@ import { setTimeout as sleep } from "node:timers/promises";
 import { chromium } from "playwright";
 
 const PROJECT_ROOT = process.cwd();
-const API_HEALTH_URL = "http://127.0.0.1:8081/health";
+const API_ORIGIN = process.env.E2E_API_ORIGIN ?? "http://127.0.0.1:8081";
+const API_HEALTH_URL = `${API_ORIGIN}/health`;
 const PORTAL_URL = "http://127.0.0.1:4175";
 
 function stopProcess(child) {
@@ -53,7 +54,7 @@ async function waitForHttp(url, timeoutMs = 30_000) {
 }
 
 async function createCompletedRun() {
-  const startResponse = await fetch("http://127.0.0.1:8081/run/start", {
+  const startResponse = await fetch(`${API_ORIGIN}/run/start`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -68,7 +69,7 @@ async function createCompletedRun() {
   const startPayload = await startResponse.json();
   const runId = startPayload.run_id;
 
-  const warmupResponse = await fetch("http://127.0.0.1:8081/run/answer", {
+  const warmupResponse = await fetch(`${API_ORIGIN}/run/answer`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ run_id: runId, answer: "I recently improved a service reliability problem." }),
@@ -83,8 +84,9 @@ async function createCompletedRun() {
     "I communicate tradeoffs and monitor the rollout after release.",
   ];
 
+  let completed = false;
   for (const answer of answers) {
-    const response = await fetch("http://127.0.0.1:8081/run/answer", {
+    const response = await fetch(`${API_ORIGIN}/run/answer`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -96,14 +98,21 @@ async function createCompletedRun() {
     });
 
     assert.equal(response.ok, true);
+    const payload = await response.json();
+    if (payload.completed) {
+      completed = true;
+      break;
+    }
   }
 
+  assert.equal(completed, true, "Interview did not finish within the available answers");
   return runId;
 }
 
 async function runE2E() {
   let apiProc;
   let portalProc;
+  let browser;
 
   let apiAlreadyRunning = false;
   try {
@@ -122,6 +131,9 @@ async function runE2E() {
   }
 
   if (!apiAlreadyRunning) {
+    if (API_ORIGIN !== "http://127.0.0.1:8081") {
+      throw new Error(`Start the test API at ${API_ORIGIN} before running E2E`);
+    }
     apiProc = startProcess(
       "py",
       ["-3", "-m", "uvicorn", "services.api.main:app", "--host", "127.0.0.1", "--port", "8081"],
@@ -144,7 +156,6 @@ async function runE2E() {
 
     const runId = await createCompletedRun();
 
-    let browser;
     try {
       browser = await chromium.launch({ channel: "msedge" });
     } catch {
@@ -152,6 +163,13 @@ async function runE2E() {
     }
 
     const page = await browser.newPage();
+    if (API_ORIGIN !== "http://127.0.0.1:8081") {
+      await page.route("http://127.0.0.1:8081/**", async (route) => {
+        const url = new URL(route.request().url());
+        const response = await route.fetch({ url: `${API_ORIGIN}${url.pathname}${url.search}` });
+        await route.fulfill({ response });
+      });
+    }
     await page.goto(PORTAL_URL, { waitUntil: "domcontentloaded" });
     await page.locator("#run-id-input").waitFor();
 
@@ -166,13 +184,15 @@ async function runE2E() {
     );
     await page.getByRole("button", { name: "Submit review" }).click();
     assert.equal((await reviewResponse).ok(), true);
-    const auditResponse = await fetch(`http://127.0.0.1:8081/runs/${runId}/audit`);
+    const auditResponse = await fetch(`${API_ORIGIN}/runs/${runId}/audit`);
     const auditPayload = await auditResponse.json();
     assert.equal(auditPayload.run.status, "finalized");
 
-    await browser.close();
     console.log("Portal reviewer E2E passed.");
   } finally {
+    if (browser) {
+      await browser.close();
+    }
     if (apiProc) {
       stopProcess(apiProc);
     }
